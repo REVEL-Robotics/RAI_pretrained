@@ -300,6 +300,12 @@ class PromptFromLeRobotTask(DataTransformFn):
     tasks: dict[int, str]
 
     def __call__(self, data: DataDict) -> DataDict:
+        # Each LeRobot sample already stores its own instruction. Task indices restart at 0
+        # inside every dataset, so a shared index map is wrong when several tasks are mixed.
+        task = data.get("task")
+        if isinstance(task, str):
+            return {**data, "prompt": task}
+
         if "task_index" not in data:
             raise ValueError('Cannot extract prompt without "task_index"')
 

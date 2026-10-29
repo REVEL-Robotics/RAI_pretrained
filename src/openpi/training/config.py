@@ -66,6 +66,8 @@ class AssetsConfig:
 class DataConfig:
     # LeRobot repo id. If None, fake data will be created.
     repo_id: str | None = None
+    # When set, load these LeRobot datasets together. repo_id is then the norm-stats id.
+    repo_ids: Sequence[str] | None = None
     # Directory within the assets directory containing the data assets.
     asset_id: str | None = None
     # Contains precomputed normalization stats. If None, normalization will not be performed.
@@ -404,6 +406,33 @@ class RLDSDroidDataConfig(DataConfigFactory):
             filter_dict_path=self.filter_dict_path,
         )
     
+# Local LeRobot folders from https://huggingface.co/datasets/qiaojunyu/ForceVLA-real-data.
+FORCEVLA_TASKS: tuple[str, ...] = (
+    "flexiv_1plug_insert_inputForce",
+    "flexiv_1plug_insert_noForce",
+    "flexiv_insert_USB_inputForce",
+    "flexiv_insert_USB_noForce",
+    "flexiv_peel_cucumber_inputForce",
+    "flexiv_peel_cucumber_noForce",
+    "flexiv_pump_1bottle_inputForce",
+    "flexiv_pump_1bottle_noForce",
+    "flexiv_wipe_board_inputForce",
+    "flexiv_wipe_board_noForce",
+)
+FORCEVLA_ALL_TASKS = "all"
+FORCEVLA_ALL_ASSET_ID = "forcevla_all"
+
+
+def resolve_forcevla_repo_ids(task: str) -> tuple[str, ...]:
+    """Return the LeRobot repo ids for one ForceVLA task, or every task when task is ``all``."""
+    if task == FORCEVLA_ALL_TASKS:
+        return FORCEVLA_TASKS
+    if task not in FORCEVLA_TASKS:
+        known = ", ".join((*FORCEVLA_TASKS, FORCEVLA_ALL_TASKS))
+        raise ValueError(f"Unknown ForceVLA task {task!r}. Choose one of: {known}")
+    return (task,)
+
+
 @dataclasses.dataclass(frozen=True)
 class LeRobotForcevlaDataConfig(DataConfigFactory):
     """
@@ -413,6 +442,19 @@ class LeRobotForcevlaDataConfig(DataConfigFactory):
     """
     # Action keys that will be used to read the action sequence from the dataset.
     action_sequence_keys: Sequence[str] = ("action",)
+    # One ForceVLA task folder, or "all" for every task. When unset, repo_id is used.
+    task: str | None = None
+
+    def _resolved_datasets(self) -> tuple[str, tuple[str, ...] | None]:
+        """Return the norm-stats repo id and, for the full set, every task repo id."""
+        if self.task is None:
+            if self.repo_id is tyro.MISSING:
+                raise ValueError("Set data.repo_id or data.task.")
+            return self.repo_id, None
+        repo_ids = resolve_forcevla_repo_ids(self.task)
+        if self.task == FORCEVLA_ALL_TASKS:
+            return FORCEVLA_ALL_ASSET_ID, repo_ids
+        return repo_ids[0], None
 
     @override
     def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
@@ -424,8 +466,13 @@ class LeRobotForcevlaDataConfig(DataConfigFactory):
         # For your own dataset, first figure out what keys your environment passes to the policy server
         # and then modify the mappings below so your dataset's keys get matched to those target keys.
         # The repack transform simply remaps key names here.
+        asset_repo_id, repo_ids = self._resolved_datasets()
         print("-"*100)
         print("ForceVla data is loading..")
+        if repo_ids is None:
+            print(f"ForceVLA task: {asset_repo_id}")
+        else:
+            print("ForceVLA tasks:\n" + "\n".join(f"  {repo_id}" for repo_id in repo_ids))
         print("-"*100)
         repack_transform = _transforms.Group(
             inputs=[
@@ -474,7 +521,8 @@ class LeRobotForcevlaDataConfig(DataConfigFactory):
 
         # We return all data transforms for training and inference. No need to change anything here.
         return dataclasses.replace(
-            self.create_base_config(assets_dirs),
+            dataclasses.replace(self, repo_id=asset_repo_id).create_base_config(assets_dirs),
+            repo_ids=repo_ids,
             repack_transforms=repack_transform,
             data_transforms=data_transforms,
             model_transforms=model_transforms,
@@ -820,6 +868,18 @@ _CONFIGS = [
         freeze_filter=pi0_force.Pi0_GuidanceConfig(
             paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
         ).get_freeze_filter(),
+        ema_decay=None,
+        batch_size=4,
+    ),
+    TrainConfig(
+        name="forcevla_full",
+        model=pi0_force.Pi0_GuidanceConfig(),
+        data=LeRobotForcevlaDataConfig(
+            repo_id="flexiv_peel_cucumber_inputForce",
+            base_config=DataConfig(prompt_from_task=True),
+        ),
+        weight_loader=weight_loaders.Pi0GuidanceWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=50_000,
         ema_decay=None,
         batch_size=4,
     ),
