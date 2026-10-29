@@ -1,4 +1,4 @@
-# RAI pretrained version
+# RAI pretrained
 
 This is the basic version of the RAI architecture. The vision encoder and the vision-language model start from pretrained weights and are fine-tuned. The remaining modules are trained on a laser-engraver manipulation task with a Genesis robot, using either a two-finger gripper or a Wuji Hand 2.
 
@@ -6,9 +6,9 @@ The repository is organized by branch:
 
 | Branch | Contents |
 | --- | --- |
-| ForceVLA | Original ForceVLA. This branch. |
+| [ForceVLA](https://github.com/REVEL-Robotics/RAI_pretrained/tree/forcevla) | Original ForceVLA. |
 | ForceVLA2 | Reimplementation of ForceVLA2. Coming soon. |
-| RAI pretrained | Extended version of ForceVLA2. Coming soon. |
+| [RAI pretrained](https://github.com/REVEL-Robotics/RAI_pretrained/tree/main) | Basic RAI architecture. |
 
 Training data: link coming soon.
 
