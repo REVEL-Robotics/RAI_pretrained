@@ -1,4 +1,4 @@
-# RAI ForceVLA
+# RAI ForceVLA2
 
 This is the basic version of the RAI architecture. The vision encoder and the vision-language model start from pretrained weights and are fine-tuned. The remaining modules are trained on a laser-engraver manipulation task with a Genesis robot, using either a two-finger gripper or a Wuji Hand 2.
 
