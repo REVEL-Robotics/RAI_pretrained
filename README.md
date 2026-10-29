@@ -7,7 +7,7 @@ The repository is organized by branch:
 | Branch | Contents |
 | --- | --- |
 | [ForceVLA](https://github.com/REVEL-Robotics/RAI_pretrained/tree/forcevla) | Original ForceVLA. |
-| ForceVLA2 | Reimplementation of ForceVLA2. Coming soon. |
+| [ForceVLA2](https://github.com/REVEL-Robotics/RAI_pretrained/tree/forcevla2) | Reimplementation of ForceVLA2. |
 | [RAI pretrained](https://github.com/REVEL-Robotics/RAI_pretrained/tree/main) | Basic RAI architecture. |
 
 Training data: link coming soon.
